@@ -2,11 +2,12 @@
 pragma solidity =0.7.6;
 pragma abicoder v2;
 
+import "./interfaces/ISwapRouter02.sol";
 import "./V2SwapRouter.sol";
 import "./V3SwapRouter.sol";
 import "./ThrusterGas.sol";
 
-contract SwapRouter02 is V2SwapRouter, V3SwapRouter, ThrusterGas {
+contract SwapRouter02 is ISwapRouter02, V2SwapRouter, V3SwapRouter, ThrusterGas {
     address private constant BLAST_POINTS = 0x2536FE9ab3F511540F2f9e2eC2A805005C3Dd800;
 
     constructor(address _factoryV2, address _factoryV3, address _WETH, address _manager) 
