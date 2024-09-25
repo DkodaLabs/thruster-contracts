@@ -18,6 +18,7 @@ import "./libraries/Path.sol";
 import "./libraries/PoolAddress.sol";
 import "./libraries/SafeCast.sol";
 import "./libraries/TickMath.sol";
+import "./libraries/Constants.sol";
 
 abstract contract V3SwapRouter is
     IV3SwapRouter,
@@ -82,8 +83,9 @@ abstract contract V3SwapRouter is
         uint160 sqrtPriceLimitX96,
         SwapCallbackData memory data
     ) private returns (uint256 amountOut) {
-        // allow swapping to the router address with address 0
-        if (recipient == address(0)) recipient = address(this);
+        // find and replace recipient addresses
+        if (recipient == Constants.MSG_SENDER) recipient = msg.sender;
+        else if (recipient == Constants.ADDRESS_THIS) recipient = address(this);
 
         (address tokenIn, address tokenOut, uint24 fee) = data.path.decodeFirstPool();
 
@@ -103,18 +105,28 @@ abstract contract V3SwapRouter is
     }
 
     /// @inheritdoc IV3SwapRouter
-    function exactInputSingle(ExactInputSingleParams calldata params)
+    function exactInputSingle(ExactInputSingleParams memory params)
         external
         payable
         override
         checkDeadline(params.deadline)
         returns (uint256 amountOut)
     {
+        // use amountIn == Constants.CONTRACT_BALANCE as a flag to swap the entire balance of the contract
+        bool hasAlreadyPaid;
+        if (params.amountIn == Constants.CONTRACT_BALANCE) {
+            hasAlreadyPaid = true;
+            params.amountIn = IERC20(params.tokenIn).balanceOf(address(this));
+        }
+
         amountOut = exactInputInternal(
             params.amountIn,
             params.recipient,
             params.sqrtPriceLimitX96,
-            SwapCallbackData({path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), payer: msg.sender})
+            SwapCallbackData({
+                path: abi.encodePacked(params.tokenIn, params.fee, params.tokenOut), 
+                payer: hasAlreadyPaid ? address(this) : msg.sender
+            })
         );
         require(amountOut >= params.amountOutMinimum, "Too little received");
     }
@@ -127,7 +139,15 @@ abstract contract V3SwapRouter is
         checkDeadline(params.deadline)
         returns (uint256 amountOut)
     {
-        address payer = msg.sender; // msg.sender pays for the first hop
+        // use amountIn == Constants.CONTRACT_BALANCE as a flag to swap the entire balance of the contract
+        bool hasAlreadyPaid;
+        if (params.amountIn == Constants.CONTRACT_BALANCE) {
+            hasAlreadyPaid = true;
+            (address tokenIn, , ) = params.path.decodeFirstPool();
+            params.amountIn = IERC20(tokenIn).balanceOf(address(this));
+        }
+
+        address payer = hasAlreadyPaid ? address(this) : msg.sender;
 
         while (true) {
             bool hasMultiplePools = params.path.hasMultiplePools();
@@ -163,8 +183,9 @@ abstract contract V3SwapRouter is
         uint160 sqrtPriceLimitX96,
         SwapCallbackData memory data
     ) private returns (uint256 amountIn) {
-        // allow swapping to the router address with address 0
-        if (recipient == address(0)) recipient = address(this);
+        // find and replace recipient addresses
+        if (recipient == Constants.MSG_SENDER) recipient = msg.sender;
+        else if (recipient == Constants.ADDRESS_THIS) recipient = address(this);
 
         (address tokenOut, address tokenIn, uint24 fee) = data.path.decodeFirstPool();
 
