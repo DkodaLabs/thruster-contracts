@@ -10,7 +10,7 @@ import "./interfaces/IWETH.sol";
 import "./ThrusterGas.sol";
 import "./base/Multicall.sol";
 import "./base/PeripheryImmutableState.sol";
-import "./base/PeripheryPaymentsWithFee.sol";
+import "./base/PeripheryPaymentsWithFeeExtended.sol";
 import "./base/PeripheryValidation.sol";
 import "./base/SelfPermit.sol";
 import "./libraries/CallbackValidation.sol";
@@ -24,7 +24,7 @@ abstract contract V3SwapRouter is
     IV3SwapRouter,
     PeripheryImmutableState,
     PeripheryValidation,
-    PeripheryPaymentsWithFee,
+    PeripheryPaymentsWithFeeExtended,
     Multicall,
     SelfPermit
 {

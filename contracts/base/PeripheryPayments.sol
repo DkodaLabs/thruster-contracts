@@ -8,6 +8,7 @@ import "../interfaces/IWETH.sol";
 
 import "contracts/base/PeripheryImmutableState.sol";
 import "contracts/libraries/TransferHelper.sol";
+import "contracts/libraries/Constants.sol";
 
 abstract contract PeripheryPayments is IPeripheryPayments, PeripheryImmutableState {
     receive() external payable {
@@ -19,6 +20,7 @@ abstract contract PeripheryPayments is IPeripheryPayments, PeripheryImmutableSta
         uint256 balanceWETH9 = IWETH(WETH9).balanceOf(address(this));
         require(balanceWETH9 >= amountMinimum, "Insufficient WETH9");
 
+        if (recipient == Constants.ADDRESS_THIS) recipient = address(this);
         if (balanceWETH9 > 0) {
             IWETH(WETH9).withdraw(balanceWETH9);
             TransferHelper.safeTransferETH(recipient, balanceWETH9);
