@@ -8,26 +8,19 @@ import "./interfaces/IV2SwapRouter.sol";
 import "./interfaces/IThrusterV2Factory.sol";
 import "./interfaces/IWETH.sol";
 
+import "./base/ImmutableState.sol";
 import "./base/PeripheryPaymentsWithFeeExtended.sol";
 import "./libraries/LowGasSafeMath.sol";
 import "./libraries/TransferHelper.sol";
 import "./libraries/ThrusterV2Library.sol";
 import "./libraries/Constants.sol";
 
-abstract contract V2SwapRouter is IV2SwapRouter, PeripheryPaymentsWithFeeExtended {
+abstract contract V2SwapRouter is IV2SwapRouter, ImmutableState, PeripheryPaymentsWithFeeExtended {
     using LowGasSafeMath for uint256;
-
-    address public immutable override factoryV2;
-    address public immutable override WETH;
 
     modifier ensure(uint256 deadline) {
         require(deadline >= block.timestamp, "ThrusterRouter: EXPIRED");
         _;
-    }
-
-    constructor(address _factoryV2, address _WETH) {
-        factoryV2 = _factoryV2;
-        WETH = _WETH;
     }
 
     // **** SWAP ****
@@ -105,14 +98,14 @@ abstract contract V2SwapRouter is IV2SwapRouter, PeripheryPaymentsWithFeeExtende
         address to,
         uint256 deadline
     ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == WETH, "ThrusterRouter: INVALID_PATH");
+        require(path[path.length - 1] == WETH9, "ThrusterRouter: INVALID_PATH");
         amounts = ThrusterV2Library.getAmountsIn(factoryV2, amountOut, path);
         require(amounts[0] <= amountInMax, "ThrusterRouter: EXCESSIVE_INPUT_AMOUNT");
         TransferHelper.safeTransferFrom(
             path[0], msg.sender, ThrusterV2Library.pairFor(factoryV2, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
-        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
+        IWETH(WETH9).withdraw(amounts[amounts.length - 1]);
 
         // find and replace to addresses
         if (to == Constants.MSG_SENDER) to = msg.sender;
@@ -128,7 +121,7 @@ abstract contract V2SwapRouter is IV2SwapRouter, PeripheryPaymentsWithFeeExtende
         address to,
         uint256 deadline
     ) external payable virtual override ensure(deadline) returns (uint256[] memory amounts) {
-        require(path[path.length - 1] == WETH, "ThrusterRouter: INVALID_PATH");
+        require(path[path.length - 1] == WETH9, "ThrusterRouter: INVALID_PATH");
 
         // use amountIn == Constants.CONTRACT_BALANCE as a flag to swap the entire balance of the contract
         bool hasAlreadyPaid;
@@ -146,7 +139,7 @@ abstract contract V2SwapRouter is IV2SwapRouter, PeripheryPaymentsWithFeeExtende
             amounts[0]
         );
         _swap(amounts, path, address(this));
-        IWETH(WETH).withdraw(amounts[amounts.length - 1]);
+        IWETH(WETH9).withdraw(amounts[amounts.length - 1]);
 
         // find and replace to addresses
         if (to == Constants.MSG_SENDER) to = msg.sender;
@@ -219,7 +212,7 @@ abstract contract V2SwapRouter is IV2SwapRouter, PeripheryPaymentsWithFeeExtende
         address to,
         uint256 deadline
     ) external virtual override ensure(deadline) {
-        require(path[path.length - 1] == WETH, "ThrusterRouter: INVALID_PATH");
+        require(path[path.length - 1] == WETH9, "ThrusterRouter: INVALID_PATH");
 
         // use amountIn == Constants.CONTRACT_BALANCE as a flag to swap the entire balance of the contract
         bool hasAlreadyPaid;
@@ -236,9 +229,9 @@ abstract contract V2SwapRouter is IV2SwapRouter, PeripheryPaymentsWithFeeExtende
         );
 
         _swapSupportingFeeOnTransferTokens(path, address(this));
-        uint256 amountOut = IERC20(WETH).balanceOf(address(this));
+        uint256 amountOut = IERC20(WETH9).balanceOf(address(this));
         require(amountOut >= amountOutMin, "ThrusterRouter: INSUFFICIENT_OUTPUT_AMOUNT");
-        IWETH(WETH).withdraw(amountOut);
+        IWETH(WETH9).withdraw(amountOut);
 
         // find and replace to addresses
         if (to == Constants.MSG_SENDER) to = msg.sender;

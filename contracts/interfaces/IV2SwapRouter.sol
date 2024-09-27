@@ -2,9 +2,6 @@
 pragma solidity =0.7.6;
 
 interface IV2SwapRouter {
-    function factoryV2() external view returns (address);
-
-    function WETH() external view returns (address);
 
     function swapExactTokensForTokens(
         uint256 amountIn,

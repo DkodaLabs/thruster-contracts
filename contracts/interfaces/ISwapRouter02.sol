@@ -7,5 +7,5 @@ import "./IV3SwapRouter.sol";
 import "./IThrusterGas.sol";
 
 interface ISwapRouter02 is IV2SwapRouter, IV3SwapRouter, IThrusterGas {
-    
+    function updatePointsAdmin(address _admin) external;
 }
